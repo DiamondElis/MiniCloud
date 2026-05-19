@@ -28,6 +28,37 @@ services:
       postgres:
         condition: service_healthy
 
+  postgres-cloudwatch:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: minicloud
+      POSTGRES_PASSWORD: minicloud
+      POSTGRES_DB: minicloud_cloudwatch
+    ports:
+      - "5433:5432"
+    volumes:
+      - minicloud-cloudwatch-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U minicloud -d minicloud_cloudwatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  cloudwatch-service:
+    build:
+      context: ../apps/cloudwatch-service
+    environment:
+      DATABASE_URL: postgresql+psycopg://minicloud:minicloud@postgres-cloudwatch:5432/minicloud_cloudwatch
+      IAM_AUTH_ENABLED: "false"
+      IAM_BASE_URL: http://iam-service:8001
+      SERVICE_NAME: cloudwatch-service
+      PORT: 8002
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres-cloudwatch:
+        condition: service_healthy
+
 volumes:
   minicloud-iam-postgres:
-
+  minicloud-cloudwatch-postgres:
