@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: minicloud
+      POSTGRES_PASSWORD: minicloud
+      POSTGRES_DB: minicloud_iam
+    ports:
+      - "5432:5432"
+    volumes:
+      - minicloud-iam-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U minicloud -d minicloud_iam"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  iam-service:
+    build:
+      context: ../apps/iam-service
+    environment:
+      DATABASE_URL: postgresql+psycopg://minicloud:minicloud@postgres:5432/minicloud_iam
+      JWT_SECRET: local-dev-only-change-me
+      JWT_EXPIRES_SECONDS: 3600
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  minicloud-iam-postgres:
+
